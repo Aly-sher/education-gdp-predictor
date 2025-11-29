@@ -4,3 +4,4 @@ __pycache__/
 *.keras
 .ipynb_checkpoints/
 .DS_Store
+.streamlit/secrets.toml

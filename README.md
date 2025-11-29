@@ -1,42 +1,53 @@
-# 🌐 Global Growth Outlook AI
+# 🚀 Global Growth AI
 
-A professional-grade economic forecasting engine that uses Machine Learning to predict GDP growth, Literacy rates, and Human Capital development based on government policy inputs.
+**A Full-Stack Economic Forecasting Engine powered by Machine Learning & Generative AI.**
+
+This application predicts national GDP growth and Literacy rates based on education policy inputs. It combines **Predictive Modeling** (Random Forest) with **Generative Analysis** (Llama 3) to provide real-time strategic economic advice.
 
 🔗 **Live Application:** [https://alysher-gdp-predictor.streamlit.app](https://alysher-gdp-predictor.streamlit.app)
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B) ![Status](https://img.shields.io/badge/Status-Live-success)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B) ![GenAI](https://img.shields.io/badge/AI-Llama_3-violet) ![API](https://img.shields.io/badge/Data-World_Bank-green)
 
-## 🚀 Key Features
+---
 
-### 1. Real-World Data Engine
-Integrated with the **World Bank API (`wbgapi`)** to fetch 25+ years of live historical economic data for major economies including USA, Pakistan, China, India, and Germany.
+## ✨ Key Features
 
-### 2. AI Strategic Consultant
-Includes a logic-based AI advisor that analyzes inputs against historical baselines to detect:
-* **Austerity Risks:** If budget cuts exceed historical norms.
-* **Structural Inefficiency:** High spending with low output.
-* **The Middle-Income Trap:** High dropout rates between primary and secondary education.
+### 🧠 1. Generative AI Analyst (New!)
+Integrated **Llama 3.3 (via Groq API)** to act as an autonomous economic consultant.
+* Users can **chat with the data** in real-time.
+* The AI reads the specific simulation results and explains the "Why" behind the numbers.
 
-### 3. Professional Visualization
-* **Interactive Forecasts:** Powered by **Plotly**, featuring historical trend lines and dashed projection vectors.
-* **ROI Analysis:** Calculates real-time Return on Investment for education spending.
-* **Glassmorphism UI:** Custom CSS implementation for a modern, fintech-style aesthetic.
+### 📊 2. Real-Time Data Engine
+Connected to the **World Bank API (`wbgapi`)** to fetch live historical data (2000–Present) for major economies including USA, Pakistan, China, India, and Germany. No static CSVs used.
+
+### 📈 3. Predictive Analytics
+* **Model:** Multi-Output Random Forest Regressor.
+* **Function:** Predicts **Total GDP**, **GDP Per Capita**, and **Literacy Rate** for target years (2025–2030).
+* **Self-Healing Pipeline:** Automatically handles missing data points via intelligent interpolation.
+
+### 🎨 4. Professional UI/UX
+* **Glassmorphism Design:** Custom CSS implementation for a modern Fintech aesthetic.
+* **Interactive Charts:** Powered by **Plotly** for zooming, hovering, and comparing historical trends vs. future projections.
+* **Smart Logic:** Includes logic guardrails (e.g., detecting impossible enrollment stats) and strategic sanity checks.
+
+---
 
 ## 🛠️ Tech Stack
-* **Core:** Python 3.10+
-* **Data Source:** World Bank API (wbgapi)
-* **Machine Learning:** Scikit-Learn (Random Forest Regressor)
-* **Visualization:** Plotly Graph Objects
-* **Frontend:** Streamlit
 
-## 💻 Installation & Local Run
+| Component | Technology |
+| :--- | :--- |
+| **Generative AI** | Groq API (Llama 3.3-70b) |
+| **Machine Learning** | Scikit-Learn (Random Forest) |
+| **Data Source** | World Bank API (`wbgapi`) |
+| **Visualization** | Plotly Graph Objects |
+| **Frontend** | Streamlit (Python) |
+| **Data Processing** | Pandas, NumPy |
 
-```bash
-# Clone the repository
-git clone [https://github.com/Aly-sher/education-gdp-predictor.git](https://github.com/Aly-sher/education-gdp-predictor.git)
+---
 
-# Install dependencies
-pip install -r requirements.txt
+## 💻 How to Run Locally
 
-# Run the dashboard
-streamlit run app.py
+1. **Clone the repository**
+   ```bash
+   git clone [https://github.com/Aly-sher/education-gdp-predictor.git](https://github.com/Aly-sher/education-gdp-predictor.git)
+   cd education-gdp-predictor

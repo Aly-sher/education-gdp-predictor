@@ -5,10 +5,9 @@ import requests
 import streamlit as st
 from sklearn.ensemble import RandomForestRegressor
 from fpdf import FPDF
-import base64
+from groq import Groq
 
-# --- 1. EXPANDED DATA FETCHING ---
-# G20 + Major Economies
+# --- 1. DATA FETCHING ---
 COUNTRY_MAP = {
     "United States": "US", "China": "CN", "India": "IN", "Germany": "DE", 
     "Japan": "JP", "United Kingdom": "GB", "France": "FR", "Brazil": "BR", 
@@ -21,7 +20,7 @@ COUNTRY_MAP = {
 def get_world_bank_data(country_code, indicator):
     url = f"http://api.worldbank.org/v2/country/{country_code}/indicator/{indicator}?format=json&date=2000:2023"
     try:
-        response = requests.get(url, timeout=5)
+        response = requests.get(url, timeout=3)
         data = response.json()
         if len(data) > 1 and isinstance(data[1], list):
             df = pd.DataFrame(data[1])
@@ -33,48 +32,57 @@ def get_world_bank_data(country_code, indicator):
         pass
     return pd.DataFrame()
 
-# --- 2. REPORT GENERATOR (New Feature) ---
+# --- 2. REAL AI CHATBOT (GROQ) ---
+def consult_groq_ai(api_key, user_query, country, current_gdp, projected_gdp, p_enroll, s_enroll, hci, year):
+    """
+    Sends the simulation context to Groq (Llama 3) for a professional economic analysis.
+    """
+    try:
+        client = Groq(api_key=api_key)
+        
+        # We inject the simulation state into the System Prompt so the AI knows what's happening
+        system_context = f"""
+        You are a Senior Economic Strategist for the World Bank.
+        Current Analysis for: {country}
+        - Baseline Growth: {current_gdp:.2f}%
+        - AI Projected Growth ({year}): {projected_gdp:.2f}%
+        - Policy Settings: Primary Edu {p_enroll}%, Secondary Edu {s_enroll}%, Human Capital Index {hci}.
+        
+        User Query: {user_query}
+        
+        Instructions:
+        1. Answer strictly based on economic principles.
+        2. Reference the specific numbers above to prove you analyzed the data.
+        3. Keep answers concise (under 3 sentences) but insightful.
+        4. If the projection is high, mention HCI as a driver. If low, mention dropout rates.
+        """
+
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192", # Extremely fast model
+            messages=[
+                {"role": "system", "content": system_context},
+                {"role": "user", "content": user_query}
+            ],
+            temperature=0.7,
+            max_tokens=150,
+            top_p=1,
+        )
+        return completion.choices[0].message.content
+    except Exception as e:
+        return f"Error connecting to Groq AI: {str(e)}. Please check your API Key."
+
+# --- 3. REPORT GENERATOR ---
 def create_pdf_report(country, current_gdp, projected_gdp, p_enroll, s_enroll, hci):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 16)
-    
-    # Title
-    pdf.cell(200, 10, txt=f"Economic Strategy Report: {country}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Strategy Report: {country}", ln=True, align='C')
     pdf.ln(10)
-    
-    # Executive Summary
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt="1. Executive Summary", ln=True)
     pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, 10, txt=f"This report outlines the projected economic impact of educational policy shifts in {country}. "
-                               f"Based on the AI simulation, the economy is projected to grow from {current_gdp:.2f}% to {projected_gdp:.2f}%.")
-    pdf.ln(5)
-    
-    # Parameters
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt="2. Simulation Parameters", ln=True)
-    pdf.set_font("Arial", size=11)
-    pdf.cell(200, 10, txt=f"- Primary Enrollment Target: {p_enroll}%", ln=True)
-    pdf.cell(200, 10, txt=f"- Secondary Enrollment Target: {s_enroll}%", ln=True)
-    pdf.cell(200, 10, txt=f"- Human Capital Index: {hci}", ln=True)
-    pdf.ln(5)
-    
-    # Strategic Advice
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt="3. AI Recommendations", ln=True)
-    pdf.set_font("Arial", size=11)
-    
-    if s_enroll < p_enroll - 10:
-        pdf.multi_cell(0, 10, txt="- CRITICAL: Reduce drop-out rates between primary and secondary levels.")
-    if hci < 0.5:
-        pdf.multi_cell(0, 10, txt="- PRIORITY: Increase healthcare spending to boost HCI score.")
-    else:
-        pdf.multi_cell(0, 10, txt="- STRATEGY: Focus on R&D and Technology infrastructure.")
-        
+    pdf.multi_cell(0, 10, txt=f"Executive Summary:\nThe AI simulation projects an economic shift from {current_gdp:.2f}% to {projected_gdp:.2f}% based on your policy adjustments.\n\nParameters:\n- Primary Enrollment: {p_enroll}%\n- Secondary Enrollment: {s_enroll}%\n- Workforce Quality (HCI): {hci}")
     return pdf.output(dest='S').encode('latin-1')
 
-# --- 3. AI ENGINE ---
+# --- 4. PREDICTION ENGINE ---
 class EconomicAI:
     def __init__(self):
         self.model = RandomForestRegressor(n_estimators=100, random_state=42)

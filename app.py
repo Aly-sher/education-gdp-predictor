@@ -1,15 +1,14 @@
 # app.py
 import streamlit as st
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import time
 
-# Custom Imports (Modular Structure)
+# Custom Modules
 import styles
 import utils
 
-# --- 1. CONFIG ---
+# --- 1. CONFIGURATION ---
 st.set_page_config(
     page_title="Global Growth AI",
     page_icon="🌍",
@@ -17,130 +16,156 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Load CSS
 st.markdown(styles.load_css(), unsafe_allow_html=True)
 
-# Session State
+# Initialize Session State
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "simulation_run" not in st.session_state:
+    st.session_state.simulation_run = False
 
-# --- 2. SIDEBAR ---
+# --- 2. SIDEBAR CONFIGURATION ---
 st.sidebar.title("Global Growth AI")
-st.sidebar.header("📍 Region Selection")
-
-country_map = {
-    "United States": "US", "China": "CN", "India": "IN", 
-    "Pakistan": "PK", "Germany": "DE", "Brazil": "BR",
-    "United Kingdom": "GB", "Japan": "JP"
-}
-selected_country = st.sidebar.selectbox("Choose Economy", list(country_map.keys()))
-country_code = country_map[selected_country]
-
-st.sidebar.caption("⚠️ Note: Live API analysis restricted to major economies.")
+st.sidebar.caption("v2.0 Enterprise Edition")
 st.sidebar.markdown("---")
 
+# Expanded Country Selection
+st.sidebar.header("📍 Economy")
+# Using the full dictionary from utils.py
+selected_country = st.sidebar.selectbox("Select Market", list(utils.COUNTRY_MAP.keys()))
+country_code = utils.COUNTRY_MAP[selected_country]
+
+st.sidebar.markdown("---")
 st.sidebar.header("🎛️ Policy Simulation")
-st.sidebar.info("Adjust parameters to trigger AI Forecast")
 
-# Inputs
-p_enroll = st.sidebar.slider("Primary Enrollment (%)", 50, 100, 85)
-s_enroll = st.sidebar.slider("Secondary Enrollment (%)", 0, 100, 60)
-hci_score = st.sidebar.slider("Human Capital Index (0-1)", 0.0, 1.0, 0.55)
+# --- THE FORM (Adds "Run Simulation" Button) ---
+with st.sidebar.form("policy_form"):
+    st.info("Configure parameters and click Run.")
+    
+    p_enroll = st.slider("Primary Enrollment (%)", 50, 100, 85)
+    s_enroll = st.slider("Secondary Enrollment (%)", 0, 100, 60)
+    hci_score = st.slider("Human Capital Index (0-1)", 0.0, 1.0, 0.55)
+    
+    # The Submit Button
+    run_simulation = st.form_submit_button("🚀 Run Simulation")
 
-# Validation Logic
-if s_enroll > p_enroll:
-    st.sidebar.error("⚠️ Secondary enrollment cannot exceed Primary.")
+if run_simulation:
+    st.session_state.simulation_run = True
+    st.session_state.p_enroll = p_enroll
+    st.session_state.s_enroll = s_enroll
+    st.session_state.hci_score = hci_score
 
 # --- 3. MAIN DASHBOARD ---
 st.markdown(f"## 🌍 Economic Intelligence Unit: **{selected_country}**")
 
-# Data Fetching
-with st.spinner(f"Connecting to World Bank API for {selected_country}..."):
+# Fetch Data
+with st.spinner(f"Retrieving macro-economic data for {selected_country}..."):
     df_gdp = utils.get_world_bank_data(country_code, "NY.GDP.MKTP.KD.ZG")
 
-col_left, col_right = st.columns([2, 1], gap="large")
+col_main, col_chat = st.columns([2, 1], gap="large")
 
-with col_left:
+with col_main:
     if not df_gdp.empty:
         latest_growth = df_gdp['value'].iloc[-1]
         
-        # --- THE REAL AI IMPLEMENTATION ---
-        # Instead of arithmetic, we ask the Random Forest model for the impact
-        ai_impact = utils.ai_engine.predict_impact(p_enroll, s_enroll, hci_score)
-        
-        # Scaling the impact to be realistic relative to the country's baseline
-        predicted_growth = latest_growth + (ai_impact / 10) 
-        
-        # KPIS
-        k1, k2, k3 = st.columns(3)
-        k1.markdown(f"""<div class="metric-card"><div class="metric-label">Current Trend</div>
-            <div class="metric-value">{latest_growth:.2f}%</div></div>""", unsafe_allow_html=True)
+        # DEFAULT VIEW (Before Simulation)
+        if not st.session_state.simulation_run:
+            st.warning("👈 Please configure the Policy Simulation in the sidebar and click 'Run Simulation'.")
             
-        k2.markdown(f"""<div class="metric-card"><div class="metric-label">AI Forecast</div>
-            <div class="metric-value" style="color: #1976d2;">{predicted_growth:.2f}%</div></div>""", unsafe_allow_html=True)
+            # Show Baseline Data Only
+            k1, k2 = st.columns(2)
+            k1.markdown(f"""<div class="metric-card"><div class="metric-label">Current GDP Growth</div>
+                <div class="metric-value">{latest_growth:.2f}%</div></div>""", unsafe_allow_html=True)
+            k2.markdown(f"""<div class="metric-card"><div class="metric-label">Data Year</div>
+                <div class="metric-value">{int(df_gdp['date'].iloc[-1])}</div></div>""", unsafe_allow_html=True)
+                
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df_gdp['date'], y=df_gdp['value'], mode='lines', 
+                                     name='Historical', line=dict(color='#2d3748', width=2)))
+            fig.update_layout(title="Historical Baseline", plot_bgcolor='white', height=300)
+            st.plotly_chart(fig, use_container_width=True)
+
+        # SIMULATION VIEW (After Click)
+        else:
+            # AI Calculation
+            ai_impact = utils.ai_engine.predict_impact(
+                st.session_state.p_enroll, 
+                st.session_state.s_enroll, 
+                st.session_state.hci_score
+            )
+            predicted_growth = latest_growth + (ai_impact / 10)
+
+            # Metrics
+            k1, k2, k3 = st.columns(3)
+            k1.markdown(f"""<div class="metric-card"><div class="metric-label">Baseline</div>
+                <div class="metric-value">{latest_growth:.2f}%</div></div>""", unsafe_allow_html=True)
+            k2.markdown(f"""<div class="metric-card"><div class="metric-label">AI Projection</div>
+                <div class="metric-value" style="color: #3182ce;">{predicted_growth:.2f}%</div></div>""", unsafe_allow_html=True)
             
-        delta_color = "green" if ai_impact > 0 else "red"
-        k3.markdown(f"""<div class="metric-card"><div class="metric-label">Policy Effect</div>
-            <div class="metric-value" style="color: {delta_color};">{ai_impact/10:+.2f}%</div></div>""", unsafe_allow_html=True)
+            delta_color = "#38a169" if ai_impact > 0 else "#e53e3e"
+            k3.markdown(f"""<div class="metric-card"><div class="metric-label">Net Impact</div>
+                <div class="metric-value" style="color: {delta_color};">{ai_impact/10:+.2f}%</div></div>""", unsafe_allow_html=True)
+
+            # Chart Comparison
+            st.subheader("📈 Forecast Trajectory")
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=df_gdp['date'], y=df_gdp['value'], mode='lines', 
+                                     name='Historical', line=dict(color='#cbd5e0', width=2)))
             
-        # CHARTING
-        st.subheader("📈 GDP Forecast Trajectory")
-        fig = go.Figure()
-        
-        # Historical Line
-        fig.add_trace(go.Scatter(x=df_gdp['date'], y=df_gdp['value'], mode='lines', 
-                                 name='Historical', line=dict(color='#9e9e9e', width=2)))
-        
-        # Projected Point
-        last_year = df_gdp['date'].iloc[-1]
-        fig.add_trace(go.Scatter(x=[last_year, last_year+1, last_year+2], 
-                                 y=[latest_growth, predicted_growth, predicted_growth + (ai_impact/20)],
-                                 mode='lines+markers', name='AI Projection', 
-                                 line=dict(color='#2e7d32', width=3, dash='dash')))
-        
-        fig.update_layout(plot_bgcolor='white', height=350, margin=dict(t=20, b=20, l=20, r=20),
-                          xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#f0f0f0'))
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # AI RECOMMENDATIONS
-        st.markdown("### 🧠 Strategic Briefing")
-        recommendations = utils.get_recommendations(p_enroll, s_enroll, hci_score, predicted_growth)
-        
-        c1, c2 = st.columns(2)
-        if len(recommendations) > 0:
-            c1.markdown(f"""<div class="rec-card"><div class="rec-title">{recommendations[0]['title']}</div>
-            <div class="rec-body">{recommendations[0]['body']}</div></div>""", unsafe_allow_html=True)
-        
-        if len(recommendations) > 1:
-            c2.markdown(f"""<div class="rec-card"><div class="rec-title">{recommendations[1]['title']}</div>
-            <div class="rec-body">{recommendations[1]['body']}</div></div>""", unsafe_allow_html=True)
+            # Add Forecast Points
+            last_year = df_gdp['date'].iloc[-1]
+            years = [last_year, last_year+1, last_year+2]
+            values = [latest_growth, predicted_growth, predicted_growth + (ai_impact/20)]
+            
+            fig.add_trace(go.Scatter(x=years, y=values, mode='lines+markers', name='AI Scenario', 
+                                     line=dict(color='#3182ce', width=3)))
+            
+            fig.update_layout(plot_bgcolor='white', height=350, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#f7fafc'))
+            st.plotly_chart(fig, use_container_width=True)
+
+            # --- DOWNLOAD REPORT BUTTON ---
+            st.markdown("### 📄 Executive Reporting")
+            report_pdf = utils.create_pdf_report(
+                selected_country, latest_growth, predicted_growth,
+                st.session_state.p_enroll, st.session_state.s_enroll, st.session_state.hci_score
+            )
+            
+            st.download_button(
+                label="📥 Download Strategy Report (PDF)",
+                data=report_pdf,
+                file_name=f"{selected_country}_Strategy_Report.pdf",
+                mime="application/pdf"
+            )
 
     else:
-        st.error("Unable to retrieve live data. The World Bank API may be down.")
+        st.error("Data unavailable for this region. Please select another economy.")
 
-with col_right:
-    st.markdown("### 🤖 Assistant")
+# --- 4. CHATBOT SECTION ---
+with col_chat:
+    st.markdown("### 🤖 Strategy Assistant")
     st.markdown("---")
     
-    chat_container = st.container()
-    with chat_container:
+    with st.container():
         for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
             
-    if prompt := st.chat_input("Ask about the forecast..."):
+    if prompt := st.chat_input("Ask about the simulation..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
         
-        # Simple response logic (can be upgraded to OpenAI later)
-        response = f"Analyzing {selected_country}... Based on HCI {hci_score}, the AI predicts {predicted_growth:.2f}% growth."
-        
+        # Basic Context-Aware Response
+        if st.session_state.simulation_run:
+            response = f"Based on your simulation for {selected_country}, the HCI score of {st.session_state.hci_score} is the primary driver of the {predicted_growth:.2f}% projection."
+        else:
+            response = "Please run the simulation first so I can analyze the data."
+            
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.chat_message("assistant").write(response)
 
-# --- 4. FOOTER ---
+# --- 5. FOOTER ---
 st.markdown("""
 <div class="footer-container">
     <div class="footer-author">DEVELOPED BY ALI SHER KHAN TAREEN</div>
-    <div class="footer-note">Prediction based on real-time World Bank Data & Random Forest Regression.</div>
+    <div class="footer-note">v2.0 Enterprise Edition | AI-Powered Economic Forecasting</div>
 </div>
 """, unsafe_allow_html=True)

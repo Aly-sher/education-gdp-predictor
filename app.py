@@ -28,7 +28,7 @@ if "simulation_run" not in st.session_state:
 
 # --- 2. SIDEBAR CONFIGURATION ---
 st.sidebar.title("Global Growth AI")
-st.sidebar.caption("v2.2 User-Friendly Edition")
+st.sidebar.caption("v2.3 Time-Series Edition")
 st.sidebar.markdown("---")
 
 # Expanded Country Selection
@@ -39,29 +39,36 @@ country_code = utils.COUNTRY_MAP[selected_country]
 st.sidebar.markdown("---")
 st.sidebar.header("🎛️ Policy Simulation")
 
-# --- THE FORM (Now with Layman Explanations) ---
+# --- THE FORM ---
 with st.sidebar.form("policy_form"):
     st.info("👇 Adjust these levers to see how they change the future.")
     
-    # 1. Primary Enrollment (Added Help Tooltip)
+    # 1. Primary Enrollment
     p_enroll = st.slider(
         "Primary School Enrollment (%)", 
         50, 100, 85,
         help="What % of children are attending elementary school? (Global Avg is ~89%)"
     )
     
-    # 2. Secondary Enrollment (Added Context)
+    # 2. Secondary Enrollment
     s_enroll = st.slider(
         "Secondary School Enrollment (%)", 
         0, 100, 60,
         help="What % of children make it to High School? This drives the skilled workforce."
     )
     
-    # 3. HCI (Renamed for clarity + Contextual Help)
+    # 3. HCI
     hci_score = st.slider(
         "Workforce Quality (HCI Index)", 
         0.0, 1.0, 0.55,
-        help="Human Capital Index: Measures the health & skills of the next generation. 0.5 = Low Productivity, 0.88 = World Class (Singapore)."
+        help="Human Capital Index: Measures the health & skills of the next generation."
+    )
+    
+    # 4. TARGET YEAR SLIDER (NEW FEATURE)
+    target_year = st.slider(
+        "Forecast Target Year",
+        2025, 2030, 2028,
+        help="How far into the future do you want to predict?"
     )
     
     run_simulation = st.form_submit_button("🚀 Run Simulation")
@@ -71,6 +78,7 @@ if run_simulation:
     st.session_state.p_enroll = p_enroll
     st.session_state.s_enroll = s_enroll
     st.session_state.hci_score = hci_score
+    st.session_state.target_year = target_year
 
 # --- 3. MAIN DASHBOARD ---
 st.markdown(f"## 🌍 Economic Intelligence: **{selected_country}**")
@@ -84,8 +92,9 @@ col_main, col_chat = st.columns([2, 1], gap="large")
 with col_main:
     if not df_gdp.empty:
         latest_growth = df_gdp['value'].iloc[-1]
+        current_data_year = int(df_gdp['date'].iloc[-1])
         
-        # --- A. TOP KPI CARDS (Simplified) ---
+        # --- A. TOP KPI CARDS ---
         if st.session_state.simulation_run:
             # AI Calculation
             ai_impact = utils.ai_engine.predict_impact(
@@ -96,9 +105,11 @@ with col_main:
             predicted_growth = latest_growth + (ai_impact / 10)
 
             k1, k2, k3 = st.columns(3)
-            k1.markdown(f"""<div class="metric-card"><div class="metric-label">Current Growth</div>
+            k1.markdown(f"""<div class="metric-card"><div class="metric-label">Current Growth ({current_data_year})</div>
                 <div class="metric-value">{latest_growth:.2f}%</div></div>""", unsafe_allow_html=True)
-            k2.markdown(f"""<div class="metric-card"><div class="metric-label">AI Prediction</div>
+            
+            # Updated Label with Target Year
+            k2.markdown(f"""<div class="metric-card"><div class="metric-label">AI Prediction ({st.session_state.target_year})</div>
                 <div class="metric-value" style="color: #3182ce;">{predicted_growth:.2f}%</div></div>""", unsafe_allow_html=True)
             
             delta_color = "#38a169" if ai_impact > 0 else "#e53e3e"
@@ -106,28 +117,45 @@ with col_main:
                 <div class="metric-value" style="color: {delta_color};">{ai_impact/10:+.2f}%</div></div>""", unsafe_allow_html=True)
         else:
             predicted_growth = latest_growth 
-            st.info("👈 **Start Here:** Adjust the sliders in the sidebar and click 'Run Simulation'.")
+            st.info("👈 **Start Here:** Set your 'Forecast Target Year' and policy levers in the sidebar.")
 
-        # --- B. FORECAST TRAJECTORY ---
+        # --- B. FORECAST TRAJECTORY (Dynamic) ---
         st.subheader("📈 Future Growth Projection")
-        st.caption("The dotted line shows where the economy will go based on your policy changes.")
+        st.caption(f"Projection from {current_data_year} to {st.session_state.get('target_year', 2028)}")
         
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=df_gdp['date'], y=df_gdp['value'], mode='lines', 
                                  name='Past Performance', line=dict(color='#cbd5e0', width=2)))
         
         if st.session_state.simulation_run:
-            last_year = df_gdp['date'].iloc[-1]
-            years = [last_year, last_year+1, last_year+2, last_year+3]
-            values = [latest_growth, predicted_growth, predicted_growth * 1.05, predicted_growth * 1.08]
+            # Generate Dynamic Timeline
+            end_year = st.session_state.target_year
+            if end_year <= current_data_year:
+                 end_year = current_data_year + 1 # Fallback to avoid errors
             
-            fig.add_trace(go.Scatter(x=years, y=values, mode='lines+markers', name='AI Forecast', 
-                                     line=dict(color='#3182ce', width=4, shape='spline')))
+            future_years = list(range(current_data_year, end_year + 1))
+            
+            # Generate Smooth Curve (Interpolation from Current -> Predicted)
+            # We assume the policy takes full effect by the target year
+            future_values = np.linspace(latest_growth, predicted_growth, len(future_years))
+            
+            # Add a slight curve (not just straight line) for realism
+            noise = np.random.normal(0, 0.1, len(future_years)) # Tiny realistic variance
+            future_values = future_values + noise
+            future_values[-1] = predicted_growth # Ensure landing on target
+
+            fig.add_trace(go.Scatter(x=future_years, y=future_values, mode='lines+markers', name='AI Forecast', 
+                                     line=dict(color='#3182ce', width=4, dash='solid')))
+            
+            # Add Target Annotation
+            fig.add_annotation(x=end_year, y=predicted_growth, 
+                               text=f"Target: {predicted_growth:.1f}%", 
+                               showarrow=True, arrowhead=2, ax=0, ay=-40)
 
         fig.update_layout(plot_bgcolor='white', height=350, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#f7fafc'))
         st.plotly_chart(fig, use_container_width=True)
 
-        # --- C. DEEP DIVE ANALYTICS (With "How to read" notes) ---
+        # --- C. DEEP DIVE ANALYTICS ---
         if st.session_state.simulation_run:
             st.markdown("### 🔍 Analysis Breakdown")
             
@@ -160,7 +188,7 @@ with col_main:
 
             # 2. Radar Chart
             with tab2:
-                st.caption("💡 **How to read this:** The Blue Shape is your economy. The Dotted Line is the G20 Average. You want your Blue Shape to be bigger than the Dotted Line.")
+                st.caption("💡 **How to read this:** The Blue Shape is your economy. The Dotted Line is the G20 Average.")
                 
                 categories = ['Primary Ed', 'Secondary Ed', 'Workforce Quality', 'GDP Growth', 'Innovation']
                 input_values = [
@@ -181,7 +209,7 @@ with col_main:
 
             # 3. Scatter Plot
             with tab3:
-                st.caption("💡 **What this means:** This compares your 'Workforce Quality' (X-axis) against 'GDP Growth' (Y-axis). Being higher up is better.")
+                st.caption("💡 **What this means:** Compares 'Workforce Quality' (X-axis) vs 'GDP Growth' (Y-axis).")
                 np.random.seed(42)
                 x_vals = np.random.uniform(0.3, 0.9, 30)
                 y_vals = (x_vals * 8) + np.random.normal(0, 1, 30)
@@ -207,8 +235,7 @@ with col_main:
                 label="📥 Download Strategy Report (PDF)",
                 data=report_pdf,
                 file_name=f"{selected_country}_Strategy_Report.pdf",
-                mime="application/pdf",
-                help="Click to generate a professional PDF summary of this simulation."
+                mime="application/pdf"
             )
 
     else:
@@ -228,9 +255,9 @@ with col_chat:
         st.chat_message("user").write(prompt)
         
         if st.session_state.simulation_run:
-            response = f"I've analyzed the data for {selected_country}. Your 'Workforce Quality' score is {st.session_state.hci_score}. Increasing this score usually has the biggest impact on long-term GDP."
+            response = f"Simulating to {st.session_state.target_year}: The model predicts {predicted_growth:.2f}% growth, driven by your policy changes."
         else:
-            response = "I'm ready! Please adjust the sliders on the left and click 'Run Simulation' first."
+            response = "I'm ready! Adjust sliders and target year, then click 'Run Simulation'."
             
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.chat_message("assistant").write(response)

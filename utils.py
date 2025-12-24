@@ -35,12 +35,11 @@ def get_world_bank_data(country_code, indicator):
 # --- 2. REAL AI CHATBOT (GROQ) ---
 def consult_groq_ai(api_key, user_query, country, current_gdp, projected_gdp, p_enroll, s_enroll, hci, year):
     """
-    Sends the simulation context to Groq (Llama 3) for a professional economic analysis.
+    Sends the simulation context to Groq (Llama 3.1) for a professional economic analysis.
     """
     try:
         client = Groq(api_key=api_key)
         
-        # We inject the simulation state into the System Prompt so the AI knows what's happening
         system_context = f"""
         You are a Senior Economic Strategist for the World Bank.
         Current Analysis for: {country}
@@ -58,7 +57,7 @@ def consult_groq_ai(api_key, user_query, country, current_gdp, projected_gdp, p_
         """
 
         completion = client.chat.completions.create(
-            model="llama3-8b-8192", # Extremely fast model
+            model="llama-3.1-8b-instant", # <--- UPDATED MODEL NAME
             messages=[
                 {"role": "system", "content": system_context},
                 {"role": "user", "content": user_query}

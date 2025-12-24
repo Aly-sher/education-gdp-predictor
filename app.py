@@ -25,7 +25,7 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
     .stApp { background-color: #f8f9fa; }
     
-    /* Card Styling */
+    /* Metric Card Styling */
     .metric-card {
         background-color: #ffffff;
         border: 1px solid #e0e0e0;
@@ -39,6 +39,18 @@ st.markdown("""
     .metric-card:hover { transform: translateY(-2px); }
     .metric-value { font-size: 26px; font-weight: 700; color: #2e7d32; }
     .metric-label { font-size: 13px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    /* AI Recommendation Card Styling */
+    .rec-card {
+        background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+        border-left: 5px solid #2196f3;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+    .rec-title { font-weight: 700; color: #1565c0; margin-bottom: 5px; font-size: 16px; }
+    .rec-body { color: #455a64; font-size: 14px; line-height: 1.5; }
     
     /* Chat Container */
     .chat-container {
@@ -82,35 +94,29 @@ st.sidebar.markdown("---")
 st.sidebar.header("🎓 Education Simulation")
 st.sidebar.info("Adjust indicators to forecast growth:")
 
-# --- SLIDER LOGIC FIX ---
-# 1. Primary Slider
+# --- SLIDER LOGIC ---
 primary_enroll = st.sidebar.slider("Primary School Enrollment (%)", 0, 100, 85)
 
-# 2. Secondary Slider (Max value is constrained by Primary Enrollment)
 secondary_enroll = st.sidebar.slider(
     "Secondary School Enrollment (%)", 
     0, 
-    primary_enroll,  # MAX value is set to whatever Primary is
-    min(60, primary_enroll) # Default value adjusts if primary drops below 60
+    primary_enroll,  # MAX value constrained by Primary
+    min(60, primary_enroll)
 )
 
-# 3. Validation Message
 if secondary_enroll == primary_enroll:
-    st.sidebar.caption("⚠️ Secondary cannot exceed Primary.")
+    st.sidebar.caption("⚠️ Secondary capped at Primary level.")
 
 human_capital_index = st.sidebar.slider("Human Capital Index (0-1)", 0.0, 1.0, 0.6)
 
-# --- 6. MAIN LAYOUT (Split Screen) ---
+# --- 6. MAIN LAYOUT ---
 
-# Top Header
 st.markdown(f"## 🌍 Economic Dashboard: **{selected_country}**")
-
-# Create Two Columns: Left for Data (65%), Right for Chatbot (35%)
 col_data, col_chat = st.columns([2, 1], gap="large")
 
 # --- LEFT COLUMN: DATA & VISUALS ---
 with col_data:
-    with st.spinner('Analyzing economic data...'):
+    with st.spinner('Crunching numbers...'):
         df_gdp = get_world_bank_data(country_code, "NY.GDP.MKTP.KD.ZG")
 
     if not df_gdp.empty:
@@ -129,94 +135,138 @@ with col_data:
             st.markdown(f"""<div class="metric-card"><div class="metric-label">AI Forecast</div>
                 <div class="metric-value" style="color: #1976d2;">{predicted_growth:.2f}%</div></div>""", unsafe_allow_html=True)
         with c3:
-            st.markdown(f"""<div class="metric-card"><div class="metric-label">Simulation Boost</div>
+            st.markdown(f"""<div class="metric-card"><div class="metric-label">Policy Impact</div>
                 <div class="metric-value">+{simulated_boost/8:.2f}%</div></div>""", unsafe_allow_html=True)
 
-        # --- ROW 2: MAIN CHART (Area Plot) ---
-        st.subheader("📈 GDP Growth Trends")
+        # --- ROW 2: MAIN CHART ---
+        st.subheader("📈 GDP Growth Trajectory")
         fig_gdp = px.area(df_gdp, x='date', y='value', 
                           labels={'value': 'Growth Rate (%)', 'date': 'Year'},
                           color_discrete_sequence=['#4caf50'])
-        
-        # Add Forecast Line
         fig_gdp.add_hline(y=predicted_growth, line_dash="dot", line_color="#2196f3", 
-                          annotation_text=f"Forecast: {predicted_growth:.1f}%")
-        
+                          annotation_text=f"AI Target: {predicted_growth:.1f}%")
         fig_gdp.update_layout(plot_bgcolor='white', margin=dict(t=10, b=10, l=10, r=10),
                               xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#f5f5f5'))
         st.plotly_chart(fig_gdp, use_container_width=True)
 
-        # --- ROW 3: NEW CHARTS (Bar & Scatter) ---
+        # --- ROW 3: VISUALS ---
         chart_col1, chart_col2 = st.columns(2)
-        
         with chart_col1:
-            st.subheader("📊 Enrollment Rates")
-            # Creating a small dataframe for the bar chart
+            st.caption("🎓 Enrollment Funnel")
             enroll_data = pd.DataFrame({
                 "Level": ["Primary", "Secondary"],
-                "Percentage": [primary_enroll, secondary_enroll],
-                "Color": ["#ff9800", "#ff5722"]
+                "Percentage": [primary_enroll, secondary_enroll]
             })
-            fig_bar = px.bar(enroll_data, x="Level", y="Percentage", color="Level", 
-                             text_auto=True, color_discrete_sequence=["#ff9800", "#ff5722"])
-            fig_bar.update_layout(showlegend=False, plot_bgcolor='white', height=300)
+            fig_bar = px.bar(enroll_data, x="Level", y="Percentage", color="Level", text_auto=True, 
+                             color_discrete_sequence=["#ff9800", "#ff5722"])
+            fig_bar.update_layout(showlegend=False, plot_bgcolor='white', height=250, margin=dict(t=0,b=0,l=0,r=0))
             st.plotly_chart(fig_bar, use_container_width=True)
 
         with chart_col2:
-            st.subheader("🧩 Human Capital vs Growth")
-            # Simulated data for visual appeal
+            st.caption("🧩 Human Capital Impact")
             x_sim = np.linspace(0, 1, 20)
             y_sim = x_sim * 5 + np.random.normal(0, 0.5, 20) + latest_growth
-            
-            fig_scatter = px.scatter(x=x_sim, y=y_sim, labels={'x': 'Human Capital Index', 'y': 'Proj. Growth'},
-                                     title="Correlation Model")
-            # Highlight current user selection
+            fig_scatter = px.scatter(x=x_sim, y=y_sim, labels={'x': 'HCI', 'y': 'Growth'})
             fig_scatter.add_trace(go.Scatter(x=[human_capital_index], y=[predicted_growth], 
-                                             mode='markers', marker=dict(color='red', size=12), name='You'))
-            fig_scatter.update_layout(plot_bgcolor='white', height=300)
+                                             mode='markers', marker=dict(color='red', size=14), name='You'))
+            fig_scatter.update_layout(plot_bgcolor='white', height=250, margin=dict(t=0,b=0,l=0,r=0), showlegend=False)
             st.plotly_chart(fig_scatter, use_container_width=True)
 
+        # --- ROW 4: AI STRATEGIC RECOMMENDATIONS (NEW FEATURE) ---
+        st.markdown("### 🧠 AI Strategic Briefing")
+        st.markdown("---")
+        
+        rec_col1, rec_col2 = st.columns(2)
+        
+        # Logic to generate charismatic recommendations
+        recs = []
+        
+        # Rec 1: Dropout Crisis
+        if secondary_enroll < (primary_enroll - 20):
+            recs.append({
+                "title": "🚨 Plug the Talent Leak",
+                "body": f"You are losing **{primary_enroll - secondary_enroll}%** of students before high school. Immediate vocational incentives are required to bridge this gap."
+            })
+        else:
+            recs.append({
+                "title": "✅ Strong Retention Pipeline",
+                "body": "Your education pipeline is robust. Shift focus from 'Access' to 'Quality' of education to maximize returns."
+            })
+
+        # Rec 2: Human Capital
+        if human_capital_index < 0.5:
+            recs.append({
+                "title": "⚡ Supercharge the Workforce",
+                "body": "Human Capital is your bottleneck. Aggressive upskilling programs and healthcare investments will yield exponential GDP returns."
+            })
+        else:
+            recs.append({
+                "title": "🚀 Innovation Frontier",
+                "body": "Your workforce is ready. Pivot policy towards R&D subsidies and Tech Infrastructure to unlock the next tier of growth."
+            })
+
+        # Rec 3: Growth Status
+        if predicted_growth < 2.0:
+            recs.append({
+                "title": "📉 Stimulus Required",
+                "body": "The economy is sluggish. Consider fiscal stimulus packages combined with the education reforms above to jumpstart momentum."
+            })
+        
+        # Display Recommendations in Stylish Cards
+        with rec_col1:
+            st.markdown(f"""
+            <div class="rec-card">
+                <div class="rec-title">{recs[0]['title']}</div>
+                <div class="rec-body">{recs[0]['body']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with rec_col2:
+            st.markdown(f"""
+            <div class="rec-card">
+                <div class="rec-title">{recs[1]['title']}</div>
+                <div class="rec-body">{recs[1]['body']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        if len(recs) > 2:
+            st.markdown(f"""
+            <div class="rec-card" style="border-left: 5px solid #ff5722;">
+                <div class="rec-title" style="color: #bf360c;">{recs[2]['title']}</div>
+                <div class="rec-body">{recs[2]['body']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
     else:
-        st.error("⚠️ Data unavailable. API Limit might be reached.")
+        st.error("⚠️ API connection failed. Please try again later.")
 
 # --- RIGHT COLUMN: AI CHATBOT ---
 with col_chat:
-    st.markdown("### 🤖 AI Assistant")
+    st.markdown("### 🤖 Assistant")
     st.markdown("---")
     
-    # Chat container styling
     with st.container():
-        # Display history
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.write(message["content"])
 
-    # Chat Input
-    if prompt := st.chat_input("Ask about the forecast..."):
-        # 1. User Message
+    if prompt := st.chat_input("Ask about the strategy..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # 2. AI Logic (Context Aware)
         with st.chat_message("assistant"):
             message_placeholder = st.empty()
             full_response = ""
             
-            # Context Variables for the AI
-            context_growth = f"{latest_growth:.2f}%"
-            context_pred = f"{predicted_growth:.2f}%"
-            
-            if "growth" in prompt.lower() or "gdp" in prompt.lower():
-                response_text = f"Current GDP growth for {selected_country} is {context_growth}. With your simulation settings, we project it could hit {context_pred}."
-            elif "education" in prompt.lower() or "school" in prompt.lower():
-                response_text = f"You've set Primary Enrollment to {primary_enroll}% and Secondary to {secondary_enroll}%. This gap suggests {primary_enroll - secondary_enroll}% drop-out rate."
-            elif "secondary" in prompt.lower():
-                response_text = "Note that Secondary enrollment is constrained; it cannot mathematically exceed Primary enrollment in our model."
+            # AI Context Logic
+            if "recommend" in prompt.lower() or "improve" in prompt.lower():
+                response_text = "Based on your sliders, I recommend focusing on 'Retention'. Creating vocational paths for students leaving primary school will instantly boost your Human Capital score."
+            elif "growth" in prompt.lower():
+                response_text = f"We are projecting a {predicted_growth:.2f}% growth rate. This is driven largely by your Human Capital Index setting of {human_capital_index}."
             else:
-                response_text = "I am tracking the economic indicators on your dashboard. Try asking about 'growth forecast' or 'enrollment impact'."
+                response_text = "I am analyzing your policy settings. Try asking: 'How can I improve GDP?' or 'Why is growth low?'"
 
-            # Typing Animation
             for chunk in response_text.split():
                 full_response += chunk + " "
                 time.sleep(0.05)

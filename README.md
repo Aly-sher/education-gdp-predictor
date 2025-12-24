@@ -52,3 +52,18 @@
    ```bash
    git clone [https://github.com/Aly-sher/education-gdp-predictor.git](https://github.com/Aly-sher/education-gdp-predictor.git)
    cd education-gdp-predictor
+
+   ```
+   ## 📂 Project Structure
+
+   Global-Growth-AI/
+├── app.py           # Main Dashboard UI & Controller
+├── utils.py         # AI Engines (RF + Groq), Data Fetching
+├── styles.py        # CSS Styling & Enterprise Theme
+├── requirements.txt # Project Dependencies
+└── README.md        # Documentation
+
+## 📜 Disclaimer
+**Predictions are based on a synthetic training model calibrated on World Bank historical data.** 
+**For educational and demonstration purposes only.**
+   

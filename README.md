@@ -1,53 +1,54 @@
-# 🚀 Global Growth AI
+# 🌍 Global Growth AI (v2.7 Enterprise)
 
-**A Full-Stack Economic Forecasting Engine powered by Machine Learning & Generative AI.**
+![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.31+-ff4b4b.svg)
+![AI Model](https://img.shields.io/badge/AI-Llama%203.1%20(Groq)-purple)
+![Status](https://img.shields.io/badge/Status-Production-success)
 
-This application predicts national GDP growth and Literacy rates based on education policy inputs. It combines **Predictive Modeling** (Random Forest) with **Generative Analysis** (Llama 3) to provide real-time strategic economic advice.
-
-🔗 **Live Application:** [https://alysher-gdp-predictor.streamlit.app](https://alysher-gdp-predictor.streamlit.app)
-
-![Python](https://img.shields.io/badge/Python-3.10%2B-blue) ![Streamlit](https://img.shields.io/badge/Streamlit-App-FF4B4B) ![GenAI](https://img.shields.io/badge/AI-Llama_3-violet) ![API](https://img.shields.io/badge/Data-World_Bank-green)
+> **Developed by Ali Sher Khan Tareen** > *AI-Powered Economic Forecasting & Strategic Simulation Engine*
 
 ---
 
-## ✨ Key Features
+## 📖 Overview
+**Global Growth AI** is a production-grade economic simulator designed for policy analysts and strategic planners. It combines a **Random Forest Regression Model** for quantitative forecasting with **Llama 3.1 (via Groq)** for qualitative strategic analysis.
 
-### 🧠 1. Generative AI Analyst (New!)
-Integrated **Llama 3.3 (via Groq API)** to act as an autonomous economic consultant.
-* Users can **chat with the data** in real-time.
-* The AI reads the specific simulation results and explains the "Why" behind the numbers.
+**Version 2.7** introduces **Automatic Authentication (Auto-Auth)**, enhanced security protocols, and logic-locked policy sliders to ensure realistic simulations.
 
-### 📊 2. Real-Time Data Engine
-Connected to the **World Bank API (`wbgapi`)** to fetch live historical data (2000–Present) for major economies including USA, Pakistan, China, India, and Germany. No static CSVs used.
+---
 
-### 📈 3. Predictive Analytics
-* **Model:** Multi-Output Random Forest Regressor.
-* **Function:** Predicts **Total GDP**, **GDP Per Capita**, and **Literacy Rate** for target years (2025–2030).
-* **Self-Healing Pipeline:** Automatically handles missing data points via intelligent interpolation.
+## 🚀 Key Features
 
-### 🎨 4. Professional UI/UX
-* **Glassmorphism Design:** Custom CSS implementation for a modern Fintech aesthetic.
-* **Interactive Charts:** Powered by **Plotly** for zooming, hovering, and comparing historical trends vs. future projections.
-* **Smart Logic:** Includes logic guardrails (e.g., detecting impossible enrollment stats) and strategic sanity checks.
+### 🧠 Dual-Core AI System
+* **Quantitative:** Random Forest model predicts GDP growth based on educational inputs (Primary/Secondary Enrollment and Human Capital Index).
+* **Qualitative:** Integrated **Llama 3.1** (via Groq API) acts as a Senior Economic Analyst, answering complex questions about the simulation data.
+
+### 🛡️ Enterprise Security
+* **Auto-Auth:** Automatically connects to AI services using Cloud Secrets (no manual key entry required).
+* **Secure Fallback:** Provides a secure password field for local testing with pre-filled developer keys.
+
+### 📊 Advanced Simulation
+* **Time-Series Forecasting:** Dynamic projection slider (2025–2030).
+* **Logic Constraints:** Secondary enrollment sliders are physically locked to never exceed Primary enrollment, ensuring data integrity.
+* **G20 Support:** Real-time World Bank data for 20+ major economies.
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Component | Technology |
-| :--- | :--- |
-| **Generative AI** | Groq API (Llama 3.3-70b) |
-| **Machine Learning** | Scikit-Learn (Random Forest) |
-| **Data Source** | World Bank API (`wbgapi`) |
-| **Visualization** | Plotly Graph Objects |
-| **Frontend** | Streamlit (Python) |
-| **Data Processing** | Pandas, NumPy |
+| Component | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | Streamlit | Responsive, component-based UI |
+| **LLM Engine** | Groq API | Llama-3.1-8b-Instant (Ultra-low latency) |
+| **Predictive AI** | Scikit-Learn | Random Forest Regressor |
+| **Data Source** | World Bank API | Real-time macro-economic indicators |
+| **Reporting** | FPDF | Dynamic PDF Strategy Brief generation |
+| **Visualization** | Plotly | Interactive financial charting |
 
 ---
 
-## 💻 How to Run Locally
+## ⚙️ Installation & Setup
 
-1. **Clone the repository**
+1. **Clone the Repository**
    ```bash
    git clone [https://github.com/Aly-sher/education-gdp-predictor.git](https://github.com/Aly-sher/education-gdp-predictor.git)
    cd education-gdp-predictor

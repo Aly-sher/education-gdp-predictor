@@ -52,14 +52,25 @@ st.markdown("""
     .rec-title { font-weight: 700; color: #1565c0; margin-bottom: 5px; font-size: 16px; }
     .rec-body { color: #455a64; font-size: 14px; line-height: 1.5; }
     
-    /* Chat Container */
-    .chat-container {
-        border: 1px solid #ddd;
+    /* Footer Styling */
+    .footer-container {
+        text-align: center;
+        margin-top: 50px;
+        padding: 20px;
+        background-color: #f1f3f4;
         border-radius: 10px;
-        padding: 10px;
-        background-color: white;
-        height: 500px;
-        overflow-y: scroll;
+        color: #555;
+    }
+    .footer-author {
+        font-weight: bold;
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    .footer-note {
+        font-size: 12px;
+        font-style: italic;
+        color: #777;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -89,6 +100,9 @@ st.sidebar.header("⚙️ Configuration")
 country_options = {"United States": "US", "China": "CN", "India": "IN", "Pakistan": "PK", "Germany": "DE", "Brazil": "BR"}
 selected_country = st.sidebar.selectbox("Select Country", list(country_options.keys()), index=0)
 country_code = country_options[selected_country]
+
+# Check/Note about 6 countries
+st.sidebar.caption(f"⚠️ Note: Data analysis is currently limited to these {len(country_options)} countries.")
 
 st.sidebar.markdown("---")
 st.sidebar.header("🎓 Education Simulation")
@@ -172,13 +186,12 @@ with col_data:
             fig_scatter.update_layout(plot_bgcolor='white', height=250, margin=dict(t=0,b=0,l=0,r=0), showlegend=False)
             st.plotly_chart(fig_scatter, use_container_width=True)
 
-        # --- ROW 4: AI STRATEGIC RECOMMENDATIONS (NEW FEATURE) ---
+        # --- ROW 4: AI STRATEGIC RECOMMENDATIONS ---
         st.markdown("### 🧠 AI Strategic Briefing")
         st.markdown("---")
         
         rec_col1, rec_col2 = st.columns(2)
         
-        # Logic to generate charismatic recommendations
         recs = []
         
         # Rec 1: Dropout Crisis
@@ -259,7 +272,6 @@ with col_chat:
             message_placeholder = st.empty()
             full_response = ""
             
-            # AI Context Logic
             if "recommend" in prompt.lower() or "improve" in prompt.lower():
                 response_text = "Based on your sliders, I recommend focusing on 'Retention'. Creating vocational paths for students leaving primary school will instantly boost your Human Capital score."
             elif "growth" in prompt.lower():
@@ -274,3 +286,12 @@ with col_chat:
             message_placeholder.markdown(full_response)
         
         st.session_state.messages.append({"role": "assistant", "content": full_response})
+
+# --- 7. FOOTER ---
+st.markdown("---")
+st.markdown("""
+<div class="footer-container">
+    <div class="footer-author">DEVELOPED BY ALI SHER KHAN TAREEN</div>
+    <div class="footer-note">Note: The prediction is based on the data that we have at the moment.</div>
+</div>
+""", unsafe_allow_html=True)

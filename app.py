@@ -26,13 +26,26 @@ if "simulation_run" not in st.session_state:
 
 # --- 2. SIDEBAR ---
 st.sidebar.title("Global Growth AI")
-st.sidebar.caption("v2.5 Groq Intelligence")
+st.sidebar.caption("v2.7 Auto-Auth Edition")
 st.sidebar.markdown("---")
 
-# SECURE API KEY INPUT
-# Paste your key here when the app is running!
-groq_api_key = st.sidebar.text_input("🔑 Groq API Key", type="password", help="Paste your gsk_... key here to activate Llama 3.")
+# --- AUTHENTICATION (SECURE) ---
+# 1. Check Streamlit Cloud Secrets (Automatic)
+if "GROQ_API_KEY" in st.secrets:
+    groq_api_key = st.secrets["GROQ_API_KEY"]
+    st.sidebar.success("✅ AI Connected (Cloud)")
 
+# 2. Fallback: Manual Input (Local Testing)
+# Value is empty to prevent GitHub Security errors
+else:
+    groq_api_key = st.sidebar.text_input(
+        "🔑 Groq API Key", 
+        type="password", 
+        value="", 
+        help="Enter your gsk_... key here if running locally."
+    )
+
+st.sidebar.markdown("---")
 st.sidebar.header("📍 Economy")
 selected_country = st.sidebar.selectbox("Select Market", list(utils.COUNTRY_MAP.keys()))
 country_code = utils.COUNTRY_MAP[selected_country]
@@ -43,12 +56,29 @@ st.sidebar.header("🎛️ Policy Simulation")
 with st.sidebar.form("policy_form"):
     st.info("👇 Adjust levers to see future impact.")
     
+    # 1. Primary Enrollment
     p_enroll = st.slider("Primary School Enrollment (%)", 50, 100, 85)
     
-    # Logic Lock: Secondary <= Primary
-    s_enroll = st.slider("Secondary School Enrollment (%)", 0, p_enroll, min(60, p_enroll))
+    # 2. Secondary Enrollment (Logic Lock)
+    # Max value is strictly capped at Primary Enrollment
+    max_sec = p_enroll
+    default_sec = min(60, max_sec)
     
+    s_enroll = st.slider(
+        "Secondary School Enrollment (%)", 
+        0, 
+        max_sec, # <--- Dynamic Max Constraint
+        default_sec,
+        help="Cannot be higher than Primary Enrollment."
+    )
+    
+    if s_enroll == p_enroll:
+        st.caption("⚠️ Note: Secondary capped at Primary level.")
+    
+    # 3. HCI
     hci_score = st.slider("Workforce Quality (HCI Index)", 0.0, 1.0, 0.55)
+    
+    # 4. Target Year
     target_year = st.slider("Forecast Target Year", 2025, 2030, 2028)
     
     run_simulation = st.form_submit_button("🚀 Run Simulation")
@@ -84,7 +114,7 @@ with col_main:
             predicted_growth = latest_growth + (ai_impact / 10)
         else:
             predicted_growth = latest_growth
-            st.info("👈 Please enter your API Key (optional) and run the simulation.")
+            st.info("👈 **Ready:** Click 'Run Simulation' to start.")
 
         # --- A. KPI CARDS ---
         if st.session_state.simulation_run:
@@ -96,10 +126,10 @@ with col_main:
             
             delta = predicted_growth - latest_growth
             color = "#38a169" if delta > 0 else "#e53e3e"
-            k3.markdown(f"""<div class="metric-card"><div class="metric-label">Net Change</div>
+            k3.markdown(f"""<div class="metric-card"><div class="metric-label">Net Impact</div>
                 <div class="metric-value" style="color: {color};">{delta:+.2f}%</div></div>""", unsafe_allow_html=True)
 
-        # --- B. CHART ---
+        # --- B. CHART (Dynamic Time Series) ---
         st.subheader("📈 Future Growth Projection")
         fig = go.Figure()
         fig.add_trace(go.Scatter(x=df_gdp['date'], y=df_gdp['value'], mode='lines', 
@@ -114,7 +144,7 @@ with col_main:
             fig.add_trace(go.Scatter(x=future_years, y=future_values, mode='lines+markers', name='AI Forecast', 
                                      line=dict(color='#3182ce', width=4)))
             
-            fig.add_annotation(x=end_year, y=predicted_growth, text=f"{predicted_growth:.1f}%", showarrow=True, arrowhead=2)
+            fig.add_annotation(x=end_year, y=predicted_growth, text=f"Target: {predicted_growth:.1f}%", showarrow=True, arrowhead=2)
 
         fig.update_layout(plot_bgcolor='white', height=350, xaxis=dict(showgrid=False), yaxis=dict(showgrid=True, gridcolor='#f7fafc'))
         st.plotly_chart(fig, use_container_width=True)
@@ -139,8 +169,8 @@ with col_main:
                 with col_c2:
                     dropout = st.session_state.p_enroll - st.session_state.s_enroll
                     st.metric("Dropout Rate", f"{dropout}%")
-                    if dropout > 20: st.error("High Talent Loss")
-                    else: st.success("Efficient Pipeline")
+                    if dropout > 20: st.error("⚠️ High Talent Loss")
+                    else: st.success("✅ Efficient Pipeline")
 
             with tab2:
                 categories = ['Primary', 'Secondary', 'HCI', 'Growth']
@@ -150,15 +180,15 @@ with col_main:
                 st.plotly_chart(fig_radar, use_container_width=True)
 
             # REPORT
-            st.markdown("### 📄 Export")
+            st.markdown("### 📄 Export Results")
             report = utils.create_pdf_report(selected_country, latest_growth, predicted_growth, 
                                              st.session_state.p_enroll, st.session_state.s_enroll, st.session_state.hci_score)
-            st.download_button("📥 Download PDF Report", report, file_name="Strategy.pdf")
+            st.download_button("📥 Download PDF Report", report, file_name=f"{selected_country}_Strategy.pdf")
 
     else:
         st.error("Data unavailable.")
 
-# --- 4. HYBRID AI CHATBOT (Groq + Fallback) ---
+# --- 4. SMART ANALYST (Llama 3) ---
 with col_chat:
     st.markdown("### 🤖 Analyst")
     st.markdown("---")
@@ -167,36 +197,35 @@ with col_chat:
         for msg in st.session_state.messages:
             st.chat_message(msg["role"]).write(msg["content"])
             
-    if prompt := st.chat_input("Ask about the data..."):
+    if prompt := st.chat_input("Ask about the simulation..."):
         st.session_state.messages.append({"role": "user", "content": prompt})
         st.chat_message("user").write(prompt)
         
         response = ""
         
         if not st.session_state.simulation_run:
-            response = "Please run the simulation first."
+            response = "Please run the simulation first so I can analyze the data."
         else:
-            # CHECK: Did user provide a key?
+            # 1. Use Groq if Key exists
             if groq_api_key:
-                # USE REAL AI (GROQ)
-                with st.spinner("Consulting Llama 3 Model..."):
+                with st.spinner("Consulting Llama 3.1..."):
                     response = utils.consult_groq_ai(
                         groq_api_key, prompt, selected_country, latest_growth, predicted_growth,
                         st.session_state.p_enroll, st.session_state.s_enroll, st.session_state.hci_score,
                         st.session_state.target_year
                     )
+            # 2. Fallback logic if no key
             else:
-                # USE FALLBACK LOGIC (IF NO KEY)
                 delta = predicted_growth - latest_growth
                 if "growth" in prompt.lower():
-                    response = f"I project growth to reach {predicted_growth:.2f}%. (Tip: Enter a Groq API Key for deeper insights)."
-                elif "education" in prompt.lower():
-                    response = f"Your secondary enrollment is {st.session_state.s_enroll}%. (Tip: Enter a Groq API Key for deeper insights)."
+                    response = f"I project growth reaching {predicted_growth:.2f}% by {st.session_state.target_year}."
+                elif "why" in prompt.lower():
+                    response = f"The main driver is your Workforce Quality score of {st.session_state.hci_score}."
                 else:
-                    response = "I am tracking the metrics. Add an API Key in the sidebar to chat with the full AI model."
+                    response = "I am tracking your simulation. Add a Groq API key for deeper analysis."
 
         st.session_state.messages.append({"role": "assistant", "content": response})
         st.chat_message("assistant").write(response)
 
-# --- FOOTER ---
+# --- 5. FOOTER ---
 st.markdown("""<div class="footer-container"><div class="footer-author">DEVELOPED BY ALI SHER KHAN TAREEN</div></div>""", unsafe_allow_html=True)
